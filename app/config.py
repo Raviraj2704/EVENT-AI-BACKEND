@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     
     # CORS
-    allowed_origins: str = "http://localhost:3000,http://localhost:5173"
+    allowed_origins: str = "http://localhost:3000,http://localhost:5173,https://event-ai-frontend-ravirajapanthulu-5771.vercel.app"
 
     # Tell Pydantic to read from .env and ignore any extra variables it doesn't need yet
     model_config = SettingsConfigDict(
