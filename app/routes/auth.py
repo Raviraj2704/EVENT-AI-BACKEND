@@ -30,7 +30,7 @@ from app.utils.email import (
 
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 
 # ============================================================================
