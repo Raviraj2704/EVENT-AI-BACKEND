@@ -32,7 +32,7 @@ logger.info(f"Database engine created: {settings.database_url}")
 # Create session factory
 SessionLocal = sessionmaker(
     autocommit=False,
-    autflush=False,
+    autoflush=False,
     bind=engine
 )
 
