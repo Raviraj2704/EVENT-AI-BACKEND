@@ -1,237 +1,173 @@
 # ============================================================================
-# Main Application Module - WITH ALL ROUTES
+# EventAI Backend - Main Application
 # ============================================================================
-# File: app/main.py
-# Purpose: FastAPI application initialization with all route imports
+# File: backend/app/main.py
+# Purpose: FastAPI application setup with CORS configuration
 # Status: Production-Ready ✅
 
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-import logging
-
 from app.config import settings
-from app.database import engine, Base
-
-# IMPORT ALL ROUTES INDIVIDUALLY TO PREVENT CIRCULAR IMPORTS
-from app.routes import auth
-from app.routes import users
-from app.routes import speakers
-from app.routes import sessions
-from app.routes import resources
-from app.routes import ratings
-from app.routes import announcements
-from app.routes import social
-from app.routes import leaderboard
-from app.routes import badges
-#from app.routes import challenges
-from app.routes import learning_paths
-from app.routes import engagement
-from app.routes import partners
-from app.routes import analytics
-from app.routes import admin
-
-
-# ============= LOGGING SETUP =============
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper(), logging.INFO),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+from app.database import init_db
+from app.routes import (
+    auth, users, speakers, sessions, resources, ratings,
+    announcements, social, leaderboard, badges, challenges,
+    learning_paths, engagement, partners, analytics, admin
 )
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-# ============= LIFESPAN EVENTS =============
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Lifespan event handler for startup and shutdown
-    
-    Startup:
-    - Create database tables
-    - Initialize connections
-    
-    Shutdown:
-    - Close connections
-    - Cleanup resources
-    """
-    # ===== STARTUP =====
-    logger.info("Starting EventAI API...")
-    
-    # Create tables
-    try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database tables created/verified")
-    except Exception as e:
-        logger.error(f"Error creating database tables: {e}")
-    
-    # Log startup
-    logger.info(f"EventAI API v{settings.app_version} started with 16 routes")
-    logger.info("All features loaded:")
-    logger.info("✅ Authentication & User Management")
-    logger.info("✅ Sessions & Speakers")
-    logger.info("✅ Resources & Ratings")
-    logger.info("✅ Social Wall")
-    logger.info("✅ Gamification (Badges, Challenges, Leaderboard)")
-    logger.info("✅ Learning Paths")
-    logger.info("✅ Engagement Center (Polls, Quizzes, Activities)")
-    logger.info("✅ Announcements & Partnerships")
-    logger.info("✅ Analytics & Admin Dashboard")
-    
-    yield
-    
-    # ===== SHUTDOWN =====
-    logger.info("Shutting down EventAI API...")
-    logger.info("Cleanup completed")
-
-
-# ============= FASTAPI APP INITIALIZATION =============
+# Initialize FastAPI app
 app = FastAPI(
-    title=settings.app_name,
-    description="AI-powered enterprise event management platform",
-    version=settings.app_version,
+    title="EventAI API",
+    description="Enterprise Event Management Platform",
+    version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
-    lifespan=lifespan
+    redoc_url="/redoc"
 )
 
-
-# ============= CORS MIDDLEWARE =============
-origins = [origin.strip() for origin in settings.allowed_origins.split(",")]
-
+# ============================================================================
+# CORS Configuration - CRITICAL FOR FRONTEND CONNECTION
+# ============================================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "https://event-ai-frontend-ravirajapanthulu-5771.vercel.app",
+        "https://eventai.vercel.app",
+        "*"  # Allow all (can be restricted in production)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600
 )
 
-logger.info(f"CORS enabled for origins: {origins}")
+# ============================================================================
+# Startup & Shutdown Events
+# ============================================================================
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("🚀 Starting EventAI API...")
+    try:
+        init_db()
+        logger.info("✅ Database initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {e}")
 
-# ============= INCLUDE ALL ROUTES =============
-app.include_router(auth.router)
-logger.info("✅ Authentication routes loaded")
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("🛑 Shutting down EventAI API...")
 
-app.include_router(users.router)
-logger.info("✅ User routes loaded")
+# ============================================================================
+# Health Check & Root Endpoints
+# ============================================================================
 
-app.include_router(speakers.router)
-logger.info("✅ Speaker routes loaded")
+@app.get("/")
+async def root():
+    return {
+        "message": "EventAI API",
+        "version": "1.0.0",
+        "status": "running"
+    }
 
-app.include_router(sessions.router)
-logger.info("✅ Session routes loaded")
-
-app.include_router(resources.router)
-logger.info("✅ Resource routes loaded")
-
-app.include_router(ratings.router)
-logger.info("✅ Rating routes loaded")
-
-app.include_router(announcements.router)
-logger.info("✅ Announcement routes loaded")
-
-app.include_router(social.router)
-logger.info("✅ Social wall routes loaded")
-
-app.include_router(leaderboard.router)
-logger.info("✅ Leaderboard routes loaded")
-
-app.include_router(badges.router)
-logger.info("✅ Badge routes loaded")
-
-#app.include_router(challenges.router)
-#logger.info("✅ Challenge routes loaded")
-
-app.include_router(learning_paths.router)
-logger.info("✅ Learning path routes loaded")
-
-app.include_router(engagement.router)
-logger.info("✅ Engagement center routes loaded")
-
-app.include_router(partners.router)
-logger.info("✅ Partner routes loaded")
-
-app.include_router(analytics.router)
-logger.info("✅ Analytics routes loaded")
-
-app.include_router(admin.router)
-logger.info("✅ Admin routes loaded")
-
-
-# ============= HEALTH CHECK ENDPOINT =============
-@app.get("/health", tags=["Health"])
+@app.get("/health")
 async def health_check():
-    """
-    Health check endpoint
-    
-    Returns:
-        dict: Health status
-    """
     return {
         "status": "healthy",
-        "app": settings.app_name,
-        "version": settings.app_version,
-        "routes": 16
+        "service": "EventAI API"
     }
 
-
-# ============= ROOT ENDPOINT =============
-@app.get("/", tags=["Root"])
-async def root():
-    """
-    Root endpoint
-    
-    Returns:
-        dict: Welcome message
-    """
+@app.get("/api/v1/health")
+async def api_health_check():
     return {
-        "message": "Welcome to EventAI API",
-        "docs": "/docs",
-        "version": settings.app_version,
-        "features": [
-            "Authentication & User Management",
-            "Sessions & Speakers",
-            "Resources & Ratings",
-            "Social Wall",
-            "Gamification (Badges, Challenges, Leaderboard)",
-            "Learning Paths",
-            "Engagement Center (Polls, Quizzes, Activities)",
-            "Announcements & Partnerships",
-            "Analytics & Admin Dashboard"
-        ]
+        "status": "healthy",
+        "service": "EventAI API",
+        "version": "1.0.0"
     }
 
+# ============================================================================
+# Include All Route Routers
+# ============================================================================
 
-# ============= EXCEPTION HANDLERS =============
+# Auth Routes
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+
+# User Routes
+app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+
+# Speaker Routes
+app.include_router(speakers.router, prefix="/api/v1/speakers", tags=["Speakers"])
+
+# Session Routes
+app.include_router(sessions.router, prefix="/api/v1/sessions", tags=["Sessions"])
+
+# Resource Routes
+app.include_router(resources.router, prefix="/api/v1/resources", tags=["Resources"])
+
+# Rating Routes
+app.include_router(ratings.router, prefix="/api/v1/ratings", tags=["Ratings"])
+
+# Announcement Routes
+app.include_router(announcements.router, prefix="/api/v1/announcements", tags=["Announcements"])
+
+# Social Routes
+app.include_router(social.router, prefix="/api/v1/social", tags=["Social"])
+
+# Leaderboard Routes
+app.include_router(leaderboard.router, prefix="/api/v1/leaderboard", tags=["Leaderboard"])
+
+# Badge Routes
+app.include_router(badges.router, prefix="/api/v1/badges", tags=["Badges"])
+
+# Challenge Routes
+app.include_router(challenges.router, prefix="/api/v1/challenges", tags=["Challenges"])
+
+# Learning Paths Routes
+app.include_router(learning_paths.router, prefix="/api/v1/learning-paths", tags=["Learning Paths"])
+
+# Engagement Routes
+app.include_router(engagement.router, prefix="/api/v1/engagement", tags=["Engagement"])
+
+# Partner Routes
+app.include_router(partners.router, prefix="/api/v1/partners", tags=["Partners"])
+
+# Analytics Routes
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
+
+# Admin Routes
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
+
+# ============================================================================
+# Error Handlers
+# ============================================================================
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """
-    Global exception handler
-    
-    Args:
-        request: Request object
-        exc: Exception object
-    
-    Returns:
-        JSONResponse: Error response
-    """
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    
+    logger.error(f"Global exception: {exc}")
     return JSONResponse(
         status_code=500,
-        content={
-            "error": "ServerError",
-            "message": "An unexpected error occurred",
-            "status_code": 500
-        }
+        content={"detail": "Internal server error"}
     )
 
+# ============================================================================
+# Main Execution
+# ============================================================================
 
-# ============= STARTUP LOGGING =============
 if __name__ == "__main__":
-    logger.info(f"Starting {settings.app_name} v{settings.app_version}")
-    logger.info(f"Debug mode: {settings.debug}")
-    logger.info(f"Database: {settings.database_url}")
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )
