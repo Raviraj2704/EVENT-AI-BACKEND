@@ -14,13 +14,13 @@ import logging
 
 from app.database import get_db
 from app.models import (
-    Challenge, UserChallenge, User, Badge, UserBadge, Leaderboard
+    Challenge, UserChallenge, User, Badge, UserBadge, Leaderboard    
 )
 from app.schemas import (
     ChallengeResponse, ChallengeDetailResponse, ChallengeJoinRequest,
     ChallengeCompleteRequest, ChallengeListRequest, ErrorResponse
 )
-from app.routes.auth import get_current_user
+from app.routes.users import get_current_user
 from app.utils.email import send_badge_earned_email
 
 
